@@ -1,12 +1,13 @@
 import { ReactNode, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { ArrowUpRight, Check, Clock, Copy, Share2, Printer, Star } from "lucide-react";
-import { Bounty, BountyEvent, BountyStatus } from "./types";
+import { Bounty, BountyEvent, BountyStatus, DisputeHistoryEntry } from "./types";
 import BountyCountdown from "./BountyCountdown";
 import UsdAmount from "./UsdAmount";
 import { updateSocialMetaTags } from "./metaTags";
 import CopyIcon from "./CopyIcons";
-import { extendDeadline } from "./api";
+import { extendDeadline, getDisputeHistory } from "./api";
 import { findSimilarBounties, type BountyRecommendation } from "./recommendations";
+import DisputeTimeline from "./DisputeTimeline";
 
 
 type BountyAction = "reserve" | "submit" | "release" | "refund";
@@ -126,6 +127,7 @@ export default function BountyDetailPage({
 
   const statusAnnouncement = useBountyStatusAnnouncement(bounty, statusCopy);
   const [copied, setCopied] = useState(false);
+  const [disputeHistory, setDisputeHistory] = useState<DisputeHistoryEntry[]>([]);
 
   const similarBounties = useMemo(() => {
     if (!bounty || !bounties || bounties.length === 0) return [];
@@ -138,6 +140,30 @@ export default function BountyDetailPage({
       updateSocialMetaTags(null);
     };
   }, [bounty]);
+
+  useEffect(() => {
+    if (!bounty) {
+      setDisputeHistory([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    getDisputeHistory(bounty.id, controller.signal)
+      .then((entries) => {
+        setDisputeHistory(entries);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        console.error("Failed to load dispute history:", error);
+        setDisputeHistory([]);
+      });
+
+    return () => controller.abort();
+  }, [bounty?.id]);
 
   function handlePrint() {
     window.print();
@@ -375,6 +401,10 @@ export default function BountyDetailPage({
 
             {bounty.events && bounty.events.length > 0 && (
               <BountyTimeline events={bounty.events} formatTimestamp={formatTimestamp} />
+            )}
+
+            {disputeHistory.length > 0 && (
+              <DisputeTimeline entries={disputeHistory} formatTimestamp={formatTimestamp} />
             )}
           </div>
         )}

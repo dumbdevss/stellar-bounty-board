@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import BountyDetailPage from "./BountyDetailPage";
 import type { Bounty, BountyStatus } from "./types";
+import * as api from "./api";
 
 const statusCopy: Record<BountyStatus, { label: string; description: string }> = {
   open: { label: "Open", description: "Ready for contributors." },
@@ -13,6 +14,7 @@ const statusCopy: Record<BountyStatus, { label: string; description: string }> =
   released: { label: "Released", description: "Funds released." },
   refunded: { label: "Refunded", description: "Funds refunded." },
   expired: { label: "Expired", description: "Past deadline." },
+  disputed: { label: "Disputed", description: "Under dispute review." },
 };
 
 const actionCopy: Record<BountyStatus, []> = {
@@ -22,6 +24,7 @@ const actionCopy: Record<BountyStatus, []> = {
   released: [],
   refunded: [],
   expired: [],
+  disputed: [],
 };
 
 const bounty: Bounty = {
@@ -83,6 +86,7 @@ function renderDetail(detailBounty: Bounty = bounty, extraBounties?: Bounty[]) {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe("BountyDetailPage copy actions", () => {
@@ -214,6 +218,39 @@ describe("BountyDetailPage copy actions", () => {
       expect(moreLikeThis).not.toHaveTextContent("Copy button test bounty");
       // The current bounty title should only appear in the detail section, not in "More like this"
       expect(screen.getByText("Copy button test bounty")).toBeInTheDocument();
+    });
+  });
+
+  describe("Dispute timeline", () => {
+    it("does not render the dispute timeline when there is no dispute history", async () => {
+      vi.spyOn(api, "getDisputeHistory").mockResolvedValue([]);
+
+      renderDetail();
+
+      await waitFor(() => {
+        expect(api.getDisputeHistory).toHaveBeenCalledWith("BNTY-42", expect.any(AbortSignal));
+      });
+
+      expect(screen.queryByText("Dispute timeline")).not.toBeInTheDocument();
+    });
+
+    it("renders dispute timeline entries when history is available", async () => {
+      vi.spyOn(api, "getDisputeHistory").mockResolvedValue([
+        {
+          type: "dispute-raised",
+          actor: bounty.contributor!,
+          timestamp: 1_700_000_500,
+          description: "Maintainer did not review within the agreed timeframe.",
+        },
+      ]);
+
+      renderDetail({ ...bounty, status: "disputed" });
+
+      expect(await screen.findByText("Dispute timeline")).toBeInTheDocument();
+      expect(screen.getByText("Dispute raised")).toBeInTheDocument();
+      expect(
+        screen.getByText("Maintainer did not review within the agreed timeframe."),
+      ).toBeInTheDocument();
     });
   });
 });

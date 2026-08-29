@@ -1475,6 +1475,77 @@ export function getBountyEvents(bountyId: string): BountyEvent[] {
   return bounty.events || [];
 }
 
+export type DisputeHistoryEventType =
+  | "dispute-raised"
+  | "evidence-added"
+  | "resolution";
+
+export interface DisputeHistoryEntry {
+  type: DisputeHistoryEventType;
+  actor: string;
+  timestamp: number;
+  description: string;
+}
+
+/**
+ * Builds a chronological dispute timeline for a bounty from audit log entries.
+ * Returns an empty array when the bounty has never been disputed.
+ */
+export function getDisputeHistory(bountyId: string): DisputeHistoryEntry[] {
+  const records = listBounties();
+  findBounty(records, bountyId);
+
+  const entries: DisputeHistoryEntry[] = [];
+
+  for (const log of readAuditStore()) {
+    if (log.bountyId !== bountyId) {
+      continue;
+    }
+
+    if (log.transition === "dispute") {
+      const reason =
+        typeof log.metadata?.reason === "string" && log.metadata.reason.trim()
+          ? log.metadata.reason.trim()
+          : "Dispute raised";
+
+      entries.push({
+        type: "dispute-raised",
+        actor: log.actor,
+        timestamp: log.timestamp,
+        description: reason,
+      });
+    }
+
+    if (log.transition === "resolve_dispute") {
+      const release = log.metadata?.release === true;
+      entries.push({
+        type: "resolution",
+        actor: log.actor,
+        timestamp: log.timestamp,
+        description: release
+          ? "Dispute resolved in favor of the contributor (payment released)."
+          : "Dispute resolved in favor of the maintainer (bounty refunded).",
+      });
+    }
+
+    const evidenceLink =
+      typeof log.metadata?.evidenceLink === "string" ? log.metadata.evidenceLink.trim() : "";
+    const evidenceCid =
+      typeof log.metadata?.evidenceCid === "string" ? log.metadata.evidenceCid.trim() : "";
+
+    if (evidenceLink || evidenceCid) {
+      entries.push({
+        type: "evidence-added",
+        actor: log.actor,
+        timestamp: log.timestamp,
+        description: evidenceLink || `Evidence submitted (${evidenceCid})`,
+      });
+    }
+  }
+
+  return entries.sort((a, b) => a.timestamp - b.timestamp);
+}
+
 /**
  * Aggregate metrics and performance tracking data for a maintainer.
  */

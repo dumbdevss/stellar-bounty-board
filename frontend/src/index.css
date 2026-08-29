@@ -1938,6 +1938,110 @@ select {
   color: var(--muted);
 }
 
+/* ── Dispute Timeline ─────────────────────────────────────────────────── */
+
+.dispute-timeline {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.dispute-timeline__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 20px;
+  color: var(--ink);
+}
+
+.dispute-timeline__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dispute-timeline__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  position: relative;
+  padding-bottom: 20px;
+}
+
+.dispute-timeline__item:last-child {
+  padding-bottom: 0;
+}
+
+.dispute-timeline__item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 18px;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+
+.dispute-timeline__dot {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface-strong);
+  border: 2px solid var(--line);
+  margin-top: 2px;
+}
+
+.dispute-timeline__item--dispute-raised .dispute-timeline__dot {
+  border-color: var(--rose);
+  background: #f9ece9;
+}
+
+.dispute-timeline__item--evidence-added .dispute-timeline__dot {
+  border-color: #7b5ea7;
+  background: #f0eaf8;
+}
+
+.dispute-timeline__item--resolution .dispute-timeline__dot {
+  border-color: var(--mint);
+  background: var(--mint-soft);
+}
+
+.dispute-timeline__content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dispute-timeline__event {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.dispute-timeline__time {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.dispute-timeline__actor {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.dispute-timeline__description {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
 /* ---- End submission checklist modal ---- */
 
 /* ── Skill-tag filter row (recommendations panel, #75) ────────────────── */
